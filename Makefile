@@ -1,13 +1,40 @@
-CC = gcc
-CFLAGS = -Wall -Wextra -Iinclude
+# Compiler and flags
+CC      = gcc
+CFLAGS  = -Wall -Wextra -Iinclude   # warnings + include path
+LDFLAGS = -lcriterion               # link with Criterion test framework
 
-SRC = src/libstring.c
-OBJ = ${SRC:.c=.o}
+# Project structure
+SRC_DIR   = src
+TEST_DIR  = tests
+BUILD_DIR = build
 
-all: test_strlen
+# Source files
+LIBSRC = $(SRC_DIR)/libstring.c
 
-test_strlen: $(OBJ) tests/test_strlen.c
-	$(CC) $(CFLAGS) -o build/test_strlen $(OBJ) tests/test_strlen.c
+# Find all test files automatically (any .c file in tests/)
+TESTSRC = $(wildcard $(TEST_DIR)/*.c)
 
+# Build one test binary per test file
+TESTBINS = $(patsubst $(TEST_DIR)/%.c,$(BUILD_DIR)/%,$(TESTSRC))
+
+# Default target: build all tests
+all: $(TESTBINS)
+
+# Rule to build each test binary
+$(BUILD_DIR)/%: $(TEST_DIR)/%.c $(LIBSRC) | $(BUILD_DIR)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+# Create build directory if it doesn't exist
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
+# Run all tests
+test: all
+	@for t in $(TESTBINS); do \
+		echo "Running $$t..."; \
+		$$t; \
+	done
+
+# Clean build files
 clean:
-	rm -f src/*.o build/*
+	rm -rf $(BUILD_DIR)
